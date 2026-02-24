@@ -3,7 +3,7 @@ import { defineConfig } from 'prisma/config';
 export default defineConfig({
   datasources: {
     db: {
-      url: 'file:./dev.db',
+      url: process.env.DATABASE_URL || 'file:./dev.db',
     },
   },
 });
