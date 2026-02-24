@@ -1,4 +1,4 @@
-# Dr. Sindhu's Skin Clinic - Appointment Booking System
+# Skin Clinic - Appointment Booking System
 
 A modern, fully-responsive appointment booking system for a dermatology clinic built with Next.js 16, React 19, TypeScript, Tailwind CSS, and Framer Motion.
 
