@@ -1,0 +1,123 @@
+// Prisma schema for Dr. Sindhu's Skin Clinic
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  googleId     String?       @unique
+  email        String        @unique
+  name         String
+  phone        String?
+  photoUrl     String?
+  dateOfBirth  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  bookings     Booking[]
+  reservations Reservation[]
+}
+
+model Doctor {
+  id             String   @id @default(cuid())
+  name           String
+  title          String
+  specialization String
+  experience     String
+  rating         Float    @default(0)
+  reviews        Int      @default(0)
+  photo          String
+  location       String
+  practoId       String?  @unique
+  active         Boolean  @default(true)
+  slots          Slot[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  duration    Int // minutes
+  priceFrom   Int
+  icon        String
+  popular     Boolean   @default(false)
+  active      Boolean   @default(true)
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Slot {
+  id           String        @id @default(cuid())
+  doctorId     String
+  doctor       Doctor        @relation(fields: [doctorId], references: [id])
+  date         DateTime
+  time         String // HH:MM
+  period       String // morning/afternoon/evening
+  available    Boolean       @default(true)
+  bookedBy     String?
+  source       String? // website/practo
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  bookings     Booking[]
+  reservations Reservation[]
+
+  @@unique([doctorId, date, time])
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  slotId    String
+  slot      Slot     @relation(fields: [slotId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  status    String   @default("reserved")
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  slotId      String
+  slot        Slot         @relation(fields: [slotId], references: [id])
+  serviceId   String
+  service     Service      @relation(fields: [serviceId], references: [id])
+  patientInfo String // JSON string
+  paymentInfo String? // JSON string
+  status      String       @default("confirmed")
+  source      String       @default("website")
+  qrCode      String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  cancelledAt DateTime?
+  practoSync  PractoSync?
+}
+
+model PractoSync {
+  id              String   @id @default(cuid())
+  bookingId       String   @unique
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  practoBookingId String   @unique
+  status          String // synced/pending/failed
+  lastSyncedAt    DateTime @default(now())
+  retryCount      Int      @default(0)
+  error           String?
+}
+
+model SlotSyncLog {
+  id          String   @id @default(cuid())
+  date        DateTime
+  source      String // practo/website
+  syncedAt    DateTime @default(now())
+  slotsTotal  Int
+  slotsAvail  Int
+  duration    Int // ms
+}
