@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendSMS } from '@/lib/services/sms';
-import { otpStore } from '@/lib/otpStore';
+import { prisma } from '@/lib/prisma';
 
 // Generate random 6-digit OTP
 function generateOTP(): string {
@@ -30,8 +30,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check rate limiting (max 3 OTPs per phone per 10 minutes)
-    const existingOTP = otpStore.get(phone);
-    if (existingOTP && existingOTP.attempts >= 3 && existingOTP.expiresAt > Date.now()) {
+    const existingOTP = await prisma.otp.findUnique({
+      where: { phone },
+    });
+    
+    if (existingOTP && existingOTP.attempts >= 3 && existingOTP.expiresAt > new Date()) {
       return NextResponse.json(
         { error: 'Too many attempts. Please try again later.' },
         { status: 429 }
@@ -40,13 +43,22 @@ export async function POST(request: NextRequest) {
 
     // Generate OTP
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Store OTP
-    otpStore.set(phone, {
-      otp,
-      expiresAt,
-      attempts: existingOTP ? existingOTP.attempts + 1 : 1,
+    // Store OTP in database (upsert = update if exists, create if not)
+    await prisma.otp.upsert({
+      where: { phone },
+      update: {
+        otp,
+        expiresAt,
+        attempts: existingOTP ? existingOTP.attempts + 1 : 1,
+      },
+      create: {
+        phone,
+        otp,
+        expiresAt,
+        attempts: 1,
+      },
     });
 
     // Send OTP via SMS

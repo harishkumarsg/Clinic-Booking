@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
-import { otpStore } from '@/lib/otpStore';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-min-32-chars';
 const JWT_EXPIRES_IN = '7d';
@@ -19,8 +18,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if OTP exists
-    const storedOTP = otpStore.get(phone);
+    // Check if OTP exists in database
+    const storedOTP = await prisma.otp.findUnique({
+      where: { phone },
+    });
+    
     if (!storedOTP) {
       return NextResponse.json(
         { error: 'OTP not found or expired. Please request a new one.' },
@@ -29,8 +31,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if OTP is expired
-    if (storedOTP.expiresAt < Date.now()) {
-      otpStore.delete(phone);
+    if (storedOTP.expiresAt < new Date()) {
+      await prisma.otp.delete({ where: { phone } });
       return NextResponse.json(
         { error: 'OTP expired. Please request a new one.' },
         { status: 400 }
@@ -45,8 +47,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // OTP verified successfully - delete it
-    otpStore.delete(phone);
+    // OTP verified successfully - delete it from database
+    await prisma.otp.delete({ where: { phone } });
 
     // Check if this is an existing user (lookup in database)
     let existingUserData = null;
