@@ -2,6 +2,8 @@
 // Handles slot synchronization, booking sync, and webhook processing
 
 import axios, { AxiosInstance } from 'axios';
+import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 interface PractoConfig {
   apiKey: string;
@@ -157,6 +159,8 @@ export class PractoService {
       return { synced: 0, conflicts: 0, errors: 0 };
     }
 
+    const startTime = Date.now();
+
     try {
       const startDate = date;
       const endDate = new Date(date);
@@ -167,20 +171,105 @@ export class PractoService {
       let synced = 0;
       let conflicts = 0;
       let errors = 0;
+      let available = 0;
 
-      // TODO: Implement actual sync logic with database
-      // For each Practo slot:
-      // 1. Check if local slot exists
-      // 2. If exists and booked on both: mark conflict
-      // 3. If exists on Practo only: create local slot
-      // 4. If booked on Practo: mark slot as unavailable locally
+      // Find the local doctor by Practo ID
+      const doctor = await prisma.doctor.findUnique({
+        where: { practoId: doctorId },
+      });
 
-      console.log(`✅ Slot sync complete: ${synced} synced, ${conflicts} conflicts`);
+      if (!doctor) {
+        console.error(`❌ Doctor not found for Practo ID: ${doctorId}`);
+        return { synced: 0, conflicts: 0, errors: 1 };
+      }
+
+      // Process each Practo slot
+      for (const practoSlot of practoSlots) {
+        try {
+          const slotDate = new Date(practoSlot.date);
+          const slotTime = practoSlot.startTime;
+          const isAvailable = practoSlot.status === 'available';
+
+          // Check if local slot exists
+          const existingSlot = await prisma.slot.findUnique({
+            where: {
+              doctorId_date_time: {
+                doctorId: doctor.id,
+                date: slotDate,
+                time: slotTime,
+              },
+            },
+          });
+
+          if (existingSlot) {
+            // Slot exists locally - check for conflicts
+            if (!existingSlot.available && isAvailable && existingSlot.source === 'website') {
+              // Conflict: booked on website but available on Practo
+              console.warn(`⚠️ Conflict detected: Slot ${slotDate} ${slotTime} booked locally but available on Practo`);
+              conflicts++;
+              // Keep website booking, don't override
+              continue;
+            }
+
+            // Update existing slot
+            await prisma.slot.update({
+              where: { id: existingSlot.id },
+              data: {
+                available: isAvailable,
+                source: 'practo',
+              },
+            });
+          } else {
+            // Create new slot from Practo
+            await prisma.slot.create({
+              data: {
+                doctorId: doctor.id,
+                date: slotDate,
+                time: slotTime,
+                period: this.getPeriodFromTime(slotTime),
+                available: isAvailable,
+                source: 'practo',
+              },
+            });
+          }
+
+          synced++;
+          if (isAvailable) available++;
+        } catch (error) {
+          console.error(`❌ Error syncing slot:`, error);
+          errors++;
+        }
+      }
+
+      // Log sync operation
+      const duration = Date.now() - startTime;
+      await prisma.slotSyncLog.create({
+        data: {
+          date: new Date(),
+          source: 'practo',
+          syncedAt: new Date(),
+          slotsTotal: synced,
+          slotsAvail: available,
+          duration,
+        },
+      });
+
+      console.log(`✅ Slot sync complete: ${synced} synced, ${available} available, ${conflicts} conflicts, ${errors} errors in ${duration}ms`);
       return { synced, conflicts, errors };
     } catch (error) {
       console.error('❌ Slot sync failed:', error);
       return { synced: 0, conflicts: 0, errors: 1 };
     }
+  }
+
+  /**
+   * Helper: Get period from time
+   */
+  private getPeriodFromTime(time: string): string {
+    const hour = parseInt(time.split(':')[0]);
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    return 'evening';
   }
 
   /**
@@ -197,45 +286,239 @@ export class PractoService {
       return { success: false };
     }
 
-    // TODO: Implement signature verification
-    // const isValid = verifyWebhookSignature(payload, signature, webhookSecret);
-    // if (!isValid) {
-    //   return { success: false };
-    // }
+    // Verify signature
+    const isValid = this.verifyWebhookSignature(JSON.stringify(payload), signature, webhookSecret);
+    if (!isValid) {
+      console.error('❌ Invalid Practo webhook signature');
+      return { success: false };
+    }
 
     const { event, data } = payload;
 
     console.log(`📥 Practo webhook received: ${event}`, data);
 
-    switch (event) {
-      case 'booking.created':
-        // A booking was made on Practo - update local database
-        console.log('✅ Booking created on Practo:', data.booking_id);
-        // TODO: Mark slot as booked locally
-        return { success: true, action: 'booking_created' };
+    try {
+      switch (event) {
+        case 'booking.created':
+          // A booking was made on Practo - update local database
+          await this.handleBookingCreated(data);
+          return { success: true, action: 'booking_created' };
 
-      case 'booking.cancelled':
-        // A booking was cancelled on Practo - free up local slot
-        console.log('❌ Booking cancelled on Practo:', data.booking_id);
-        // TODO: Mark slot as available locally
-        return { success: true, action: 'booking_cancelled' };
+        case 'booking.cancelled':
+          // A booking was cancelled on Practo - free up local slot
+          await this.handleBookingCancelled(data);
+          return { success: true, action: 'booking_cancelled' };
 
-      case 'slot.blocked':
-        // Doctor blocked a slot on Practo - mark unavailable locally
-        console.log('🚫 Slot blocked on Practo:', data.slot_id);
-        // TODO: Mark slot as unavailable
-        return { success: true, action: 'slot_blocked' };
+        case 'slot.blocked':
+          // Doctor blocked a slot on Practo - mark unavailable locally
+          await this.handleSlotBlocked(data);
+          return { success: true, action: 'slot_blocked' };
 
-      case 'slot.unblocked':
-        // Doctor unblocked a slot on Practo - mark available locally
-        console.log('✅ Slot unblocked on Practo:', data.slot_id);
-        // TODO: Mark slot as available
-        return { success: true, action: 'slot_unblocked' };
+        case 'slot.unblocked':
+          // Doctor unblocked a slot on Practo - mark available locally
+          await this.handleSlotUnblocked(data);
+          return { success: true, action: 'slot_unblocked' };
 
-      default:
-        console.log('⚠️  Unknown Practo webhook event:', event);
-        return { success: true };
+        default:
+          console.log('⚠️  Unknown Practo webhook event:', event);
+          return { success: true };
+      }
+    } catch (error) {
+      console.error('❌ Error processing webhook:', error);
+      return { success: false };
     }
+  }
+
+  /**
+   * Verify webhook signature using HMAC SHA256
+   */
+  private static verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(payload)
+      .digest('hex');
+
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+  }
+
+  /**
+   * Handle booking created on Practo
+   */
+  private static async handleBookingCreated(data: any) {
+    const { booking_id, doctor_id, slot_id, date, time, patient } = data;
+
+    // Find doctor
+    const doctor = await prisma.doctor.findUnique({
+      where: { practoId: doctor_id },
+    });
+
+    if (!doctor) {
+      console.error(`❌ Doctor not found for Practo ID: ${doctor_id}`);
+      return;
+    }
+
+    // Find or create slot
+    const slotDate = new Date(date);
+    let slot = await prisma.slot.findUnique({
+      where: {
+        doctorId_date_time: {
+          doctorId: doctor.id,
+          date: slotDate,
+          time,
+        },
+      },
+    });
+
+    if (!slot) {
+      slot = await prisma.slot.create({
+        data: {
+          doctorId: doctor.id,
+          date: slotDate,
+          time,
+          period: this.getPeriodFromTime(time),
+          available: false,
+          source: 'practo',
+          bookedBy: patient.phone,
+        },
+      });
+    } else {
+      await prisma.slot.update({
+        where: { id: slot.id },
+        data: {
+          available: false,
+          bookedBy: patient.phone,
+          source: 'practo',
+        },
+      });
+    }
+
+    console.log(`✅ Practo booking ${booking_id} synced to local slot ${slot.id}`);
+  }
+
+  /**
+   * Handle booking cancelled on Practo
+   */
+  private static async handleBookingCancelled(data: any) {
+    const { booking_id } = data;
+
+    // Find sync record
+    const sync = await prisma.practoSync.findUnique({
+      where: { practoBookingId: booking_id },
+      include: { booking: true },
+    });
+
+    if (!sync) {
+      console.warn(`⚠️ No booking found for Practo ID ${booking_id}`);
+      return;
+    }
+
+    // Update booking status
+    await prisma.booking.update({
+      where: { id: sync.bookingId },
+      data: {
+        status: 'cancelled',
+        cancelledAt: new Date(),
+      },
+    });
+
+    // Mark slot as available
+    await prisma.slot.update({
+      where: { id: sync.booking.slotId },
+      data: {
+        available: true,
+        bookedBy: null,
+      },
+    });
+
+    console.log(`✅ Cancelled booking ${sync.bookingId} (Practo ID: ${booking_id})`);
+  }
+
+  /**
+   * Handle slot blocked on Practo
+   */
+  private static async handleSlotBlocked(data: any) {
+    const { slot_id, doctor_id, date, time } = data;
+
+    const doctor = await prisma.doctor.findUnique({
+      where: { practoId: doctor_id },
+    });
+
+    if (!doctor) {
+      console.error(`❌ Doctor not found for Practo ID: ${doctor_id}`);
+      return;
+    }
+
+    const slotDate = new Date(date);
+
+    await prisma.slot.upsert({
+      where: {
+        doctorId_date_time: {
+          doctorId: doctor.id,
+          date: slotDate,
+          time,
+        },
+      },
+      update: {
+        available: false,
+        source: 'practo',
+      },
+      create: {
+        doctorId: doctor.id,
+        date: slotDate,
+        time,
+        period: this.getPeriodFromTime(time),
+        available: false,
+        source: 'practo',
+      },
+    });
+
+    console.log(`🚫 Slot blocked: ${date} ${time}`);
+  }
+
+  /**
+   * Handle slot unblocked on Practo
+   */
+  private static async handleSlotUnblocked(data: any) {
+    const { slot_id, doctor_id, date, time } = data;
+
+    const doctor = await prisma.doctor.findUnique({
+      where: { practoId: doctor_id },
+    });
+
+    if (!doctor) {
+      console.error(`❌ Doctor not found for Practo ID: ${doctor_id}`);
+      return;
+    }
+
+    const slotDate = new Date(date);
+
+    await prisma.slot.update({
+      where: {
+        doctorId_date_time: {
+          doctorId: doctor.id,
+          date: slotDate,
+          time,
+        },
+      },
+      data: {
+        available: true,
+      },
+    });
+
+    console.log(`✅ Slot unblocked: ${date} ${time}`);
+  }
+
+  /**
+   * Helper: Get period from time (static version)
+   */
+  private static getPeriodFromTime(time: string): string {
+    const hour = parseInt(time.split(':')[0]);
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    return 'evening';
   }
 
   /**
