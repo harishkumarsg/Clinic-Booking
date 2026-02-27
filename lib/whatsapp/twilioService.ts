@@ -7,6 +7,8 @@ import twilio from 'twilio';
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+// For WhatsApp Sandbox, use the sandbox number. For production, this would be your approved WhatsApp Business number
+const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER || '+14155238886';
 
 if (!accountSid || !authToken || !twilioPhoneNumber) {
   console.warn('⚠️ Twilio credentials not configured. WhatsApp messaging will not work.');
@@ -26,9 +28,9 @@ export class TwilioWhatsAppService {
 
     try {
       const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-      const formattedFrom = twilioPhoneNumber!.startsWith('whatsapp:') 
-        ? twilioPhoneNumber! 
-        : `whatsapp:${twilioPhoneNumber!}`;
+      const formattedFrom = `whatsapp:${twilioWhatsAppNumber}`;
+
+      console.log(`📤 Sending WhatsApp message from ${formattedFrom} to ${formattedTo}`);
 
       const result = await client.messages.create({
         body: message,
@@ -40,7 +42,7 @@ export class TwilioWhatsAppService {
       return result.sid;
     } catch (error) {
       console.error('❌ Failed to send WhatsApp message:', error);
-      return null;
+      throw error; // Re-throw to propagate error
     }
   }
 
@@ -59,9 +61,7 @@ export class TwilioWhatsAppService {
 
     try {
       const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-      const formattedFrom = twilioPhoneNumber!.startsWith('whatsapp:') 
-        ? twilioPhoneNumber! 
-        : `whatsapp:${twilioPhoneNumber!}`;
+      const formattedFrom = `whatsapp:${twilioWhatsAppNumber}`;
 
       const result = await client.messages.create({
         body: message,
@@ -74,7 +74,7 @@ export class TwilioWhatsAppService {
       return result.sid;
     } catch (error) {
       console.error('❌ Failed to send WhatsApp media message:', error);
-      return null;
+      throw error; // Re-throw to propagate error
     }
   }
 
