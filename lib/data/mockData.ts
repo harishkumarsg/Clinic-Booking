@@ -11,7 +11,7 @@ export const DOCTOR: Doctor = {
   experience: '12 Years',
   rating: 4.9,
   reviews: 595,
-  photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop',
+  photo: '/doctor-sindhu.jpg',
   location: 'Velachery Main Road, Chennai',
   specialization: 'Dermatologist, Aesthetic Dermatologist, Trichologist, Cosmetologist',
 };

@@ -7,8 +7,8 @@ const _dmSans = DM_Sans({ subsets: ["latin"], variable: '--font-dm-sans' });
 const _playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
-  title: 'Dr. Sindhu Ragavi | Dermatologist in Chennai | Book Appointment',
-  description: 'Book an appointment with Dr. Sindhu Ragavi, consultant dermatologist in Velachery, Chennai. Expert skin care treatments with free cancellation.',
+  title: 'Dr. Sindhu\'s Skin Clinic | Book Appointment Online',
+  description: 'Book an appointment with Dr. B.Sindhu Raaghavi, expert dermatologist in Velachery, Chennai. Specialized treatments for skin, hair, and aesthetic concerns.',
   generator: 'v0.app',
   viewport: {
     width: 'device-width',
@@ -18,19 +18,11 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/clinic-logo.png',
+        type: 'image/png',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/clinic-logo.png',
   },
 }
 

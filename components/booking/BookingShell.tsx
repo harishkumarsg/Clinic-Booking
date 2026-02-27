@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useBookingState, BookingContext } from '@/hooks/useBookingState';
 import { DOCTOR } from '@/lib/data/mockData';
 import { StepProgress } from '@/components/ui/StepProgress';
+import { Header } from '@/components/ui/Header';
 import { HeroScreen } from './HeroScreen';
 import { Step1Service } from './steps/Step1Service';
 import { Step2DateTime } from './steps/Step2DateTime';
@@ -104,6 +105,9 @@ export function BookingShell({ children }: BookingShellProps) {
   return (
     <BookingContext.Provider value={booking}>
       <div className="min-h-screen bg-background">
+        {/* Header with Logo */}
+        <Header />
+        
         {/* Main Content Area */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 max-w-7xl mx-auto px-4 py-8">
           {/* Left: Main Booking Flow */}

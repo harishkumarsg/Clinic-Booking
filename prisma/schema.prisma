@@ -132,3 +132,46 @@ model Otp {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// WhatsApp Chatbot Models
+model WhatsAppConversation {
+  id                String             @id @default(cuid())
+  phone             String             @unique
+  patientName       String?
+  patientId         String?
+  currentState      String             @default("idle") // idle/appointment_type/slot_selection/payment/etc
+  context           String? // JSON string for conversation context
+  lastMessageAt     DateTime           @default(now())
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  messages          WhatsAppMessage[]
+  pharmacyOrders    PharmacyOrder[]
+}
+
+model WhatsAppMessage {
+  id             String               @id @default(cuid())
+  conversationId String
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id])
+  messageType    String // incoming/outgoing
+  content        String
+  mediaUrl       String?
+  twilioSid      String?              @unique
+  status         String               @default("sent") // sent/delivered/read/failed
+  createdAt      DateTime             @default(now())
+}
+
+model PharmacyOrder {
+  id                String               @id @default(cuid())
+  conversationId    String
+  conversation      WhatsAppConversation @relation(fields: [conversationId], references: [id])
+  patientPhone      String
+  patientName       String
+  prescriptionUrl   String? // URL to uploaded prescription
+  medicines         String // JSON array of medicines
+  deliveryAddress   String?
+  duration          String? // e.g., "30 days"
+  status            String               @default("pending") // pending/processing/fulfilled/cancelled
+  staffNotes        String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+}
