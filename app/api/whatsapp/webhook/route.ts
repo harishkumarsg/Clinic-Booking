@@ -29,10 +29,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`📱 WhatsApp message received from ${from}: ${body}`);
 
-    // Process the message asynchronously
-    WhatsAppMessageHandler.processMessage(from, body, mediaUrl).catch((error) => {
+    // Process the message and wait for completion
+    try {
+      await WhatsAppMessageHandler.processMessage(from, body, mediaUrl);
+      console.log('✅ Message processed successfully');
+    } catch (error) {
       console.error('❌ Error processing WhatsApp message:', error);
-    });
+      // Log detailed error for debugging
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+    }
 
     // Respond to Twilio immediately
     return new NextResponse(

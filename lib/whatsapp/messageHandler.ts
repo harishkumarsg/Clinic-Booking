@@ -18,36 +18,45 @@ export class WhatsAppMessageHandler {
    * Main message processing entry point
    */
   static async processMessage(from: string, body: string, mediaUrl?: string): Promise<void> {
-    const conversation = await ConversationManager.getOrCreateConversation(from);
-    const context = await ConversationManager.getContext(from);
+    try {
+      console.log(`🔄 Processing message from ${from}: ${body}`);
+      
+      const conversation = await ConversationManager.getOrCreateConversation(from);
+      console.log(`✅ Got conversation, state: ${conversation.currentState}`);
+      
+      const context = await ConversationManager.getContext(from);
+      console.log(`✅ Got context:`, context);
 
-    // Log incoming message
-    await ConversationManager.logIncomingMessage(
-      conversation.id,
-      body,
-      undefined,
-      mediaUrl
-    );
+      // Log incoming message
+      await ConversationManager.logIncomingMessage(
+        conversation.id,
+        body,
+        undefined,
+        mediaUrl
+      );
+      console.log(`✅ Logged incoming message`);
 
-    const currentState = conversation.currentState;
-    const normalizedBody = body.trim().toLowerCase();
+      const currentState = conversation.currentState;
+      const normalizedBody = body.trim().toLowerCase();
 
-    // Handle global commands
-    if (normalizedBody === 'cancel' || normalizedBody === 'stop') {
-      await this.handleCancel(from);
-      return;
-    }
+      // Handle global commands
+      if (normalizedBody === 'cancel' || normalizedBody === 'stop') {
+        await this.handleCancel(from);
+        return;
+      }
 
-    if (normalizedBody === 'menu' || normalizedBody === 'main menu') {
-      await this.handleMainMenu(from);
-      return;
-    }
+      if (normalizedBody === 'menu' || normalizedBody === 'main menu') {
+        await this.handleMainMenu(from);
+        return;
+      }
 
-    // Route to appropriate handler based on current state
-    switch (currentState) {
-      case ConversationState.IDLE:
-      case ConversationState.GREETING:
-        await this.handleGreeting(from, normalizedBody);
+      // Route to appropriate handler based on current state
+      console.log(`🔀 Routing to handler for state: ${currentState}`);
+      switch (currentState) {
+        case ConversationState.IDLE:
+        case ConversationState.GREETING:
+          await this.handleGreeting(from, normalizedBody);
+          break;
         break;
 
       case ConversationState.PATIENT_CHECK:
@@ -92,6 +101,26 @@ export class WhatsAppMessageHandler {
           from,
           "I didn't understand that. Please reply with 'Menu' to see available options."
         );
+      }
+    } catch (error) {
+      console.error('❌ Error in processMessage:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      // Try to send error message to user
+      try {
+        await TwilioWhatsAppService.sendMessage(
+          from,
+          "Sorry, I encountered an error. Please try again or type 'Menu' for options."
+        );
+      } catch (sendError) {
+        console.error('❌ Failed to send error message:', sendError);
+      }
+      throw error; // Re-throw to be caught by webhook handler
     }
   }
 
