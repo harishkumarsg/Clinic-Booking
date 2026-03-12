@@ -43,12 +43,20 @@ export interface PatientInfo {
 
 export type BookingStatus = 'idle' | 'pending' | 'confirmed' | 'error';
 
+export interface PaymentInfo {
+  paymentId: string | null;
+  amount: number | null;
+  type: 'partial' | 'full' | null;
+  status: 'pending' | 'completed' | 'failed';
+}
+
 export interface BookingState {
-  currentStep: number; // 0: Hero, 1: Service, 2: DateTime, 3: Confirm, 4: Success
+  currentStep: number; // 0: Hero, 1: DateTime, 2: Confirm, 3: Payment, 4: Success
   selectedService: Service | null;
   selectedDate: Date | null;
   selectedSlot: TimeSlot | null;
   patient: Partial<PatientInfo>;
+  payment: PaymentInfo;
   bookingStatus: BookingStatus;
   bookingId: string | null;
   errorMessage: string | null;
@@ -70,6 +78,7 @@ export interface BookingAction {
     | 'SET_DATE'
     | 'SET_SLOT'
     | 'SET_PATIENT'
+    | 'SET_PAYMENT'
     | 'NEXT_STEP'
     | 'PREV_STEP'
     | 'RESET'

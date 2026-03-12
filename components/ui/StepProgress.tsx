@@ -11,8 +11,8 @@ interface StepProgressProps {
 
 export function StepProgress({
   currentStep,
-  steps = ['Date & Time', 'Confirm'],
-  totalSteps = 2,
+  steps = ['Date & Time', 'Confirm', 'Payment'],
+  totalSteps = 3,
 }: StepProgressProps) {
   return (
     <div className="flex items-center justify-between gap-2 md:gap-4">

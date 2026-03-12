@@ -15,6 +15,12 @@ const initialState: BookingState = {
   selectedDate: null,
   selectedSlot: null,
   patient: {},
+  payment: {
+    paymentId: null,
+    amount: null,
+    type: null,
+    status: 'pending',
+  },
   bookingStatus: 'idle',
   bookingId: null,
   errorMessage: null,
@@ -50,6 +56,15 @@ function bookingReducer(state: BookingState, action: BookingAction): BookingStat
         },
       };
 
+    case 'SET_PAYMENT':
+      return {
+        ...state,
+        payment: {
+          ...state.payment,
+          ...action.payload,
+        },
+      };
+
     case 'NEXT_STEP':
       return {
         ...state,
@@ -70,7 +85,7 @@ function bookingReducer(state: BookingState, action: BookingAction): BookingStat
         ...state,
         bookingStatus: 'confirmed',
         bookingId: `BOOKING-${Date.now()}`,
-        currentStep: 3,
+        currentStep: 4,
       };
 
     case 'SET_ERROR':
@@ -115,6 +130,10 @@ export function useBookingState() {
     dispatch({ type: 'SET_PATIENT', payload: patient });
   }, []);
 
+  const setPayment = useCallback((payment: Partial<{ paymentId: string; amount: number; type: 'partial' | 'full'; status: 'pending' | 'completed' | 'failed' }>) => {
+    dispatch({ type: 'SET_PAYMENT', payload: payment });
+  }, []);
+
   const nextStep = useCallback(() => {
     dispatch({ type: 'NEXT_STEP' });
   }, []);
@@ -141,6 +160,12 @@ export function useBookingState() {
           phone: state.patient.phone,
           dateOfBirth: state.patient.dateOfBirth,
           concerns: state.patient.concerns,
+        },
+        paymentInfo: {
+          paymentId: state.payment.paymentId,
+          amount: state.payment.amount,
+          type: state.payment.type,
+          status: state.payment.status,
         },
         doctorInfo: {
           name: 'Dr. Sindhu Ragavi',
@@ -203,6 +228,7 @@ export function useBookingState() {
     setDate,
     setSlot,
     setPatient,
+    setPayment,
     nextStep,
     prevStep,
     reset,

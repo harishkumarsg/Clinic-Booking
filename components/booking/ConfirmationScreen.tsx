@@ -121,14 +121,6 @@ export function ConfirmationScreen({
               <p className="text-sm text-muted-foreground">{doctor.title}</p>
             </div>
 
-            {/* Service */}
-            {service && (
-              <div className="pb-4 border-b border-border text-left">
-                <p className="text-xs text-muted-foreground mb-1">Service</p>
-                <p className="text-lg font-semibold text-foreground">{service.name}</p>
-              </div>
-            )}
-
             {/* Date & Time */}
             {date && slot && (
               <div className="pb-4 border-b border-border text-left">
@@ -182,7 +174,6 @@ export function ConfirmationScreen({
           transition={{ delay: 0.7 }}
         >
           <p>⏰ Please arrive 15 minutes early</p>
-          <p>✓ Bring a valid ID and any medical reports</p>
         </motion.div>
 
         {/* Action Buttons */}

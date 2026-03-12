@@ -106,7 +106,6 @@ export function Step3Confirm({
           name: data.name,
           email: data.email,
           phone: result.user.phone || '',
-          dateOfBirth: result.user.dateOfBirth || '',
           photoUrl: data.picture,
           googleId: data.sub,
         });
@@ -243,20 +242,12 @@ export function Step3Confirm({
     onSetPatient({ phone: value ? `+91${value}` : '' });
   };
 
-  const handleDOBChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onSetPatient({ dateOfBirth: e.target.value });
-  };
-
-  const handleConcernsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onSetPatient({ concerns: e.target.value });
-  };
-
   // Validate form whenever patient data changes
   useEffect(() => {
     if (showForm) {
       validateForm();
     }
-  }, [patient.name, patient.email, patient.phone, patient.dateOfBirth, showForm]);
+  }, [patient.name, patient.email, patient.phone, showForm]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -278,15 +269,7 @@ export function Step3Confirm({
       newErrors.phone = 'Please enter a valid 10-digit Indian phone number';
     }
 
-    if (!patient.dateOfBirth?.trim()) {
-      newErrors.dob = 'Date of birth is required';
-    } else {
-      const dob = new Date(patient.dateOfBirth);
-      const age = new Date().getFullYear() - dob.getFullYear();
-      if (age < 18) {
-        newErrors.dob = 'You must be at least 18 years old';
-      }
-    }
+
 
     setErrors(newErrors);
     const isFormValid = Object.keys(newErrors).length === 0;
@@ -551,46 +534,6 @@ export function Step3Confirm({
                 {errors.phone}
               </p>
             )}
-          </div>
-
-          {/* DOB Field */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Date of Birth
-            </label>
-            <input
-              type="date"
-              value={patient.dateOfBirth || ''}
-              onChange={handleDOBChange}
-              className="w-full px-4 py-3 rounded-lg border-2 border-border bg-card text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            />
-            {errors.dob && (
-              <p className="text-sm text-red-600 mt-1" role="alert">
-                {errors.dob}
-              </p>
-            )}
-          </div>
-
-          {/* Concerns Field */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Specific Concern (Optional)
-            </label>
-            <textarea
-              placeholder="Tell us about your skin concerns..."
-              value={patient.concerns || ''}
-              onChange={handleConcernsChange}
-              maxLength={500}
-              rows={4}
-              className="w-full px-4 py-3 rounded-lg border-2 border-border bg-card text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary resize-none"
-            />
-          </div>
-
-          {/* Trust Signals */}
-          <div className="pt-4 border-t border-border space-y-2 text-sm text-muted-foreground text-center">
-            <p>🔒 Secure & confidential</p>
-            <p>📅 Free cancellation up to 24 hours</p>
-            <p>✉️ SMS & Email confirmation</p>
           </div>
         </motion.div>
       )}

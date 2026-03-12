@@ -98,11 +98,6 @@ export class EmailService {
       </div>
       
       <div class="detail-row">
-        <div class="detail-label">Service:</div>
-        <div class="detail-value">${serviceName}</div>
-      </div>
-      
-      <div class="detail-row">
         <div class="detail-label">Date:</div>
         <div class="detail-value">${date}</div>
       </div>
@@ -131,8 +126,6 @@ export class EmailService {
         <strong style="color: #92400e;">⏰ Important Reminders:</strong>
         <ul style="color: #78350f;">
           <li>Please arrive 15 minutes early</li>
-          <li>Bring a valid ID and any medical reports</li>
-          <li>Free cancellation up to 24 hours before</li>
         </ul>
       </div>
 
@@ -158,7 +151,6 @@ Your appointment has been confirmed!
 
 APPOINTMENT DETAILS:
 Doctor: ${doctorName}
-Service: ${serviceName}
 Date: ${date}
 Time: ${time}
 Location: ${location}
@@ -168,8 +160,6 @@ Booking Reference: ${bookingId}
 
 IMPORTANT REMINDERS:
 • Please arrive 15 minutes early
-• Bring a valid ID and any medical reports
-• Free cancellation up to 24 hours before
 
 Thank you for choosing Dr. Sindhu's Skin Clinic.
 

@@ -62,16 +62,13 @@ export class SMSService {
 Your appointment is confirmed!
 
 Doctor: ${doctorName}
-Service: ${serviceName}
 Date: ${date}
 Time: ${time}
 Location: ${location}
 
 Booking ID: ${bookingId}
 
-Please arrive 15 mins early. Bring valid ID & medical reports.
-
-Free cancellation up to 24 hours before.
+Please arrive 15 mins early.
 
 - Dr. Sindhu's Skin Clinic`;
 

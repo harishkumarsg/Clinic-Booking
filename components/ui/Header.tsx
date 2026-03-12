@@ -13,10 +13,10 @@ export function Header() {
       animate={{ y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="container flex h-20 items-center justify-between px-4 md:px-8">
+      <div className="container flex h-28 md:h-32 items-center justify-between px-4 md:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-3">
-          <div className="relative h-12 w-48 md:h-14 md:w-56">
+          <div className="relative h-24 w-80 md:h-28 md:w-[28rem]">
             <Image
               src="/clinic-logo.png"
               alt="Dr. Sindhu's Skin Clinic"

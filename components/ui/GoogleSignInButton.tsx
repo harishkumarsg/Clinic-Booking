@@ -89,17 +89,8 @@ export function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonPro
           },
         });
 
-        // Render Google Sign-In button
-        const buttonDiv = document.getElementById('google-signin-button');
-        if (buttonDiv && !(buttonDiv as any).hasBeenRendered) {
-          (window as any).google.accounts.id.renderButton(buttonDiv, {
-            type: 'standard',
-            theme: 'outline',
-            size: 'large',
-            locale: 'en',
-          });
-          (buttonDiv as any).hasBeenRendered = true;
-        }
+        // Directly trigger the Google Sign-In popup
+        (window as any).google.accounts.id.prompt();
       }
     } catch (error) {
       console.error('Google Sign-In error:', error);
@@ -114,14 +105,7 @@ export function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonPro
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* Google Sign-In Button Container */}
-      <div
-        id="google-signin-button"
-        className="flex justify-center mb-4"
-        onClick={handleGoogleSignIn}
-      />
-
-      {/* Fallback Button */}
+      {/* Google Sign-In Button */}
       <motion.button
         onClick={handleGoogleSignIn}
         disabled={isLoading}

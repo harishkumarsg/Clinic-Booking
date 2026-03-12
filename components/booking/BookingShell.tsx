@@ -10,9 +10,8 @@ import { HeroScreen } from './HeroScreen';
 import { Step1Service } from './steps/Step1Service';
 import { Step2DateTime } from './steps/Step2DateTime';
 import { Step3Confirm } from './steps/Step3Confirm';
+import { Step4Payment } from './steps/Step4Payment';
 import { ConfirmationScreen } from './ConfirmationScreen';
-import { AppointmentSidebar } from './AppointmentSidebar';
-import { MobileSummaryBar } from './MobileSummaryBar';
 
 interface BookingShellProps {
   children?: ReactNode;
@@ -31,15 +30,28 @@ export function BookingShell({ children }: BookingShellProps) {
         booking.nextStep();
       }
     } else if (booking.state.currentStep === 2) {
-      // Confirmation step
-      setIsConfirming(true);
-      try {
-        await booking.confirmBooking();
-      } catch (error) {
-        console.error('Failed to confirm booking:', error);
-      } finally {
-        setIsConfirming(false);
-      }
+      // Patient details confirmed, move to payment
+      booking.nextStep();
+    }
+  };
+
+  const handlePaymentComplete = async (paymentId: string, amount: number, type: 'partial' | 'full') => {
+    // Set payment info
+    booking.setPayment({
+      paymentId,
+      amount,
+      type,
+      status: 'completed',
+    });
+
+    // Now confirm the booking with the backend
+    setIsConfirming(true);
+    try {
+      await booking.confirmBooking();
+    } catch (error) {
+      console.error('Failed to confirm booking:', error);
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -82,10 +94,22 @@ export function BookingShell({ children }: BookingShellProps) {
             onSetPatient={booking.setPatient}
             onConfirm={handleContinue}
             onBack={handleBack}
-            isConfirming={isConfirming}
+            isConfirming={false}
           />
         );
       case 3:
+        return (
+          <Step4Payment
+            consultationFee={booking.state.selectedService?.priceFrom || 500}
+            onPaymentComplete={(paymentId, amount) => {
+              const type = amount === 50 ? 'partial' : 'full';
+              handlePaymentComplete(paymentId, amount, type);
+            }}
+            onBack={handleBack}
+            isProcessing={isConfirming}
+          />
+        );
+      case 4:
         return (
           <ConfirmationScreen
             doctor={DOCTOR}
@@ -109,11 +133,11 @@ export function BookingShell({ children }: BookingShellProps) {
         <Header />
         
         {/* Main Content Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto px-4 py-8">
           {/* Left: Main Booking Flow */}
           <div className="space-y-6">
-            {/* Step Progress - Show on steps 1-2 only */}
-            {booking.state.currentStep > 0 && booking.state.currentStep < 3 && (
+            {/* Step Progress - Show on steps 1-3 only */}
+            {booking.state.currentStep > 0 && booking.state.currentStep < 4 && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -138,30 +162,7 @@ export function BookingShell({ children }: BookingShellProps) {
 
             {children}
           </div>
-
-          {/* Right: Sidebar */}
-          <AppointmentSidebar
-            doctor={DOCTOR}
-            service={booking.state.selectedService}
-            date={booking.state.selectedDate}
-            slot={booking.state.selectedSlot}
-          />
         </div>
-
-        {/* Mobile Summary Bar */}
-        {booking.state.currentStep > 0 && booking.state.currentStep < 4 && (
-          <MobileSummaryBar
-            doctor={DOCTOR}
-            service={booking.state.selectedService}
-            date={booking.state.selectedDate}
-            slot={booking.state.selectedSlot}
-          />
-        )}
-
-        {/* Mobile bottom padding for fixed summary bar */}
-        {booking.state.currentStep > 0 && booking.state.currentStep < 4 && (
-          <div className="lg:hidden h-24" />
-        )}
       </div>
     </BookingContext.Provider>
   );

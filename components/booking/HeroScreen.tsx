@@ -3,7 +3,7 @@
 import { Doctor } from '@/lib/types/booking';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Star } from 'lucide-react';
+import { Star, MapPin } from 'lucide-react';
 
 interface HeroScreenProps {
   doctor: Doctor;
@@ -21,7 +21,7 @@ export function HeroScreen({ doctor, onStart }: HeroScreenProps) {
     >
       {/* Doctor Photo */}
       <motion.div
-        className="relative w-24 h-24 rounded-full overflow-hidden mx-auto ring-4 ring-primary/20"
+        className="relative w-48 h-48 rounded-full overflow-hidden mx-auto ring-4 ring-primary/20"
         whileHover={{ scale: 1.1 }}
       >
         <Image src={doctor.photo} alt={doctor.name} fill className="object-cover" />
@@ -60,8 +60,6 @@ export function HeroScreen({ doctor, onStart }: HeroScreenProps) {
             {doctor.rating} ({doctor.reviews.toLocaleString()} reviews)
           </span>
         </div>
-        <span className="hidden sm:inline text-border">•</span>
-        <span>📍 {doctor.location}</span>
       </motion.div>
 
       {/* CTA Button */}
@@ -73,21 +71,6 @@ export function HeroScreen({ doctor, onStart }: HeroScreenProps) {
       >
         Book an Appointment — Free
       </motion.button>
-
-      {/* Trust Badge */}
-      <motion.div
-        className="inline-block bg-secondary rounded-full px-6 py-3 text-sm font-medium text-primary"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        🔒 Free cancellation up to 24 hours
-      </motion.div>
-
-      {/* Specialization */}
-      <p className="text-base text-muted-foreground mt-8">
-        {doctor.specialization}
-      </p>
     </motion.div>
   );
 }
